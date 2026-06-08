@@ -1,7 +1,7 @@
 ## 1. Backend Lifecycle Rules
 
-- [ ] 1.1 Define canonical order statuses and allowed transition map in backend order service
-- [ ] 1.2 Add transition validation helper that rejects illegal status changes with clear error messages
+- [ ] 1.1 Define canonical order statuses and allowed transition map in `backend/models.py`
+- [ ] 1.2 Add shared transition validation helper used by the order service to reject illegal status changes with clear error messages
 - [ ] 1.3 Add or update request/response models needed for status transition payload validation
 
 ## 2. Backend API Integration
