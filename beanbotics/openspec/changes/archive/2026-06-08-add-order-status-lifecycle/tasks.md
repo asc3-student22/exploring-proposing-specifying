@@ -26,4 +26,4 @@
 
 - [x] 5.1 Add or update backend tests for valid and invalid lifecycle transitions and pending-only cancellation
 - [x] 5.2 Add or update frontend behavior checks for status-specific actions and grouped queue rendering
-- [ ] 5.3 Run project checks and manually validate end-to-end order progression in the queue UI
+- [x] 5.3 Run project checks and manually validate end-to-end order progression in the queue UI
