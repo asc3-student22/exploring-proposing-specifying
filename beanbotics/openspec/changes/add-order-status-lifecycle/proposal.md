@@ -1,28 +1,53 @@
-## Why
+## Problem
 
-The order domain model already defines a multi-stage lifecycle, but the running system only supports `pending` and `cancelled` in practice. Adding explicit lifecycle progression now closes this behavior gap, improves operational visibility in the queue, and prevents fragile status updates with clear transition rules.
+The order model defines five statuses (`pending`, `preparing`, `ready`, `completed`, `cancelled`), but the current implementation only uses `pending` and `cancelled` in practice. There is no backend path to advance an order through preparation, ready-for-pickup, and completion, and the frontend queue does not support lifecycle progression beyond canceling pending orders.
 
-## What Changes
+This mismatch between intended domain behavior and runtime behavior limits operational visibility and makes status handling fragile because transitions are not explicitly modeled or validated.
 
-- Add a canonical backend order lifecycle with explicit allowed transitions.
-- Add one status-transition API endpoint used for all order state updates, including cancellation.
-- Validate transitions and return clear errors for invalid status changes.
-- Keep cancellation restricted to orders that are currently `pending`.
-- Update the existing queue UI to show inline status actions based on each order's current state.
-- Group queue rendering by status and keep completed orders visible in a dedicated Completed section.
+## Proposed Solution
 
-## Capabilities
+Implement an explicit order lifecycle with validated transitions and inline queue controls to move orders through each stage.
 
-### New Capabilities
-- `order-status-lifecycle`: Defines allowed order statuses, transition validation, and status transition API behavior.
-- `order-status-ui`: Defines queue UI actions and grouped display behavior for lifecycle progression.
+### Lifecycle
+- `pending -> preparing -> ready -> completed`
+- `pending -> cancelled`
 
-### Modified Capabilities
-- None.
+### Backend
+- Introduce a canonical set of allowed statuses and a transition map.
+- Expose a single status-transition endpoint for all updates, including cancellation.
+- Validate every requested transition against the transition map.
+- Reject invalid transitions with clear API errors.
+- Keep cancellation restricted to orders currently in `pending`.
 
-## Impact
+### Frontend
+- Keep controls in the existing queue UI.
+- Render inline action buttons per order based on current status:
+	- `pending`: advance to `preparing`, or cancel
+	- `preparing`: advance to `ready`
+	- `ready`: advance to `completed`
+	- `completed` and `cancelled`: no advance actions
+- Display orders grouped on the queue board, including a visible Completed group where completed orders remain listed.
 
-- Backend files in `backend/services/orders.py`, `backend/models.py`, and `backend/app.py` will be updated to support validated transitions and endpoint handling.
-- Frontend files in `frontend/script.js` and related queue rendering logic will be updated for status-specific actions and grouped display.
-- API surface changes from cancel-only behavior to a unified status transition endpoint.
-- No new persistence layer or external dependencies are required.
+## Scope
+
+- Add backend status-transition validation using a transition map.
+- Add one endpoint for all status transitions.
+- Keep current cancellation rule: pending only.
+- Update frontend queue rendering to show status-specific inline actions.
+- Group queue display to keep completed orders visible in a dedicated Completed section.
+
+## Out of Scope
+
+- Separate staff/admin interface.
+- Automatic timer-based status progression.
+- Role-based authorization for who can transition orders.
+- Persistence redesign or historical analytics beyond existing in-memory model.
+- Notification systems (SMS, push, email, and similar).
+
+## Risks
+
+- **State drift between clients:** Multiple users may attempt conflicting transitions; invalid transition handling and refresh behavior must be clear.
+- **UI complexity growth:** Inline controls and grouped views add rendering logic that can become brittle without tests.
+- **Backward compatibility:** Existing clients using cancel-only behavior may need graceful handling if endpoint contracts change.
+- **Rule ambiguity:** Unclear edge cases (for example, where cancelled orders should appear) can produce inconsistent UX if not codified.
+- **Operational confusion during rollout:** Users accustomed to pending/cancel-only behavior may need clear labels and affordances for new stages.
