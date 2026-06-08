@@ -158,6 +158,18 @@ h2 {
     margin-top: 2rem;
 }
 
+.order-group {
+    margin-bottom: 1.2rem;
+}
+
+.order-group h3 {
+    color: #a0a0b0;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.5rem;
+}
+
 .order-item {
     background: #16213e;
     border: 1px solid #0f3460;
@@ -193,6 +205,44 @@ h2 {
     font-size: 0.8rem;
     text-transform: uppercase;
     margin-right: 1rem;
+}
+
+.status-pending {
+    color: #f4c95d;
+}
+
+.status-preparing {
+    color: #6bc6ff;
+}
+
+.status-ready {
+    color: #6ad66a;
+}
+
+.status-completed,
+.status-cancelled {
+    color: #8e8ea0;
+}
+
+.order-actions {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.action-btn {
+    background: #2d6cdf;
+    color: #fff;
+    border: 1px solid #2d6cdf;
+    padding: 0.3rem 0.7rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+}
+
+.action-btn:hover {
+    background: #1f53ad;
+    border-color: #1f53ad;
 }
 
 .cancel-btn {

@@ -77,15 +77,76 @@ async function placeOrder(itemId) {
     }
 }
 
-async function cancelOrder(orderId) {
+function statusDisplayLabel(status) {
+    return status.charAt(0).toUpperCase() + status.slice(1);
+}
+
+function orderActionsForStatus(order) {
+    if (order.status === "pending") {
+        return `
+            <button class="action-btn" onclick="transitionOrder(${order.order_id}, 'preparing')">Start Preparing</button>
+            <button class="cancel-btn" onclick="transitionOrder(${order.order_id}, 'cancelled')">Cancel</button>
+        `;
+    }
+
+    if (order.status === "preparing") {
+        return `<button class="action-btn" onclick="transitionOrder(${order.order_id}, 'ready')">Mark Ready</button>`;
+    }
+
+    if (order.status === "ready") {
+        return `<button class="action-btn" onclick="transitionOrder(${order.order_id}, 'completed')">Complete</button>`;
+    }
+
+    return "";
+}
+
+function renderOrderCard(order) {
+    return `
+        <div class="order-item">
+            <div class="order-info">
+                <span class="order-id">#${order.order_id}</span>
+                <span class="order-items">${order.items.join(", ")}</span>
+                <span class="order-price">$${order.total_price.toFixed(2)}</span>
+            </div>
+            <span class="order-status status-${order.status}">${statusDisplayLabel(order.status)}</span>
+            <div class="order-actions">
+                ${orderActionsForStatus(order)}
+            </div>
+        </div>
+    `;
+}
+
+function renderOrderGroup(title, orders) {
+    if (!orders.length) {
+        return "";
+    }
+
+    return `
+        <div class="order-group">
+            <h3>${title}</h3>
+            ${orders.map((order) => renderOrderCard(order)).join("")}
+        </div>
+    `;
+}
+
+async function transitionOrder(orderId, targetStatus) {
     try {
-        const res = await fetch(`${API}/api/orders/${orderId}`, {
-            method: "DELETE",
+        const res = await fetch(`${API}/api/orders/${orderId}/status`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status: targetStatus }),
         });
-        if (!res.ok) throw new Error("Cancel failed");
+
+        if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.detail || "Status update failed");
+        }
+
         await loadOrders();
     } catch (err) {
-        alert("Failed to cancel order: " + err.message);
+        alert("Failed to update order status: " + err.message);
+        // Refresh to recover from stale UI state when transition is rejected.
+        await loadOrders();
     }
 }
 
@@ -100,25 +161,29 @@ async function loadOrders() {
             return;
         }
 
-        container.innerHTML = "";
+        const statusGroups = {
+            pending: [],
+            preparing: [],
+            ready: [],
+            completed: [],
+            cancelled: [],
+        };
+
         data.orders.forEach((order) => {
-            const div = document.createElement("div");
-            div.className = "order-item";
-            div.innerHTML = `
-                <div class="order-info">
-                    <span class="order-id">#${order.order_id}</span>
-                    <span class="order-items">${order.items.join(", ")}</span>
-                    <span class="order-price">$${order.total_price.toFixed(2)}</span>
-                </div>
-                <span class="order-status">${order.status}</span>
-                ${
-                    order.status === "pending"
-                        ? `<button class="cancel-btn" onclick="cancelOrder(${order.order_id})">Cancel</button>`
-                        : ""
-                }
-            `;
-            container.appendChild(div);
+            if (statusGroups[order.status]) {
+                statusGroups[order.status].push(order);
+            }
         });
+
+        const groupedHtml = [
+            renderOrderGroup("Pending", statusGroups.pending),
+            renderOrderGroup("Preparing", statusGroups.preparing),
+            renderOrderGroup("Ready", statusGroups.ready),
+            renderOrderGroup("Completed", statusGroups.completed),
+            renderOrderGroup("Cancelled", statusGroups.cancelled),
+        ].join("");
+
+        container.innerHTML = groupedHtml;
     } catch (err) {
         container.innerHTML = `<p class="empty-state">Failed to load orders.</p>`;
     }

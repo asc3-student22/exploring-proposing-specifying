@@ -9,6 +9,27 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
 
 
+ORDER_STATUSES = {"pending", "preparing", "ready", "completed", "cancelled"}
+
+ORDER_TRANSITIONS = {
+    "pending": {"preparing", "cancelled"},
+    "preparing": {"ready"},
+    "ready": {"completed"},
+    "completed": set(),
+    "cancelled": set(),
+}
+
+
+def is_valid_order_status(status: str) -> bool:
+    return status in ORDER_STATUSES
+
+
+def can_transition_order_status(current_status: str, target_status: str) -> bool:
+    if current_status not in ORDER_TRANSITIONS:
+        return False
+    return target_status in ORDER_TRANSITIONS[current_status]
+
+
 @dataclass
 class MenuItem:
     id: str

@@ -12,7 +12,7 @@ from pydantic import BaseModel
 from pathlib import Path
 
 from backend.services.menu import MenuService
-from backend.services.orders import OrderService
+from backend.services.orders import OrderNotFoundError, OrderService, OrderTransitionError
 
 
 app = FastAPI(title="BeanBotics", version="0.1.0")
@@ -31,6 +31,10 @@ app.mount("/static", StaticFiles(directory=str(frontend_dir)), name="static")
 class OrderRequest(BaseModel):
     item_id: str
     size: str
+
+
+class OrderStatusTransitionRequest(BaseModel):
+    status: str
 
 
 # --- Routes ---
@@ -60,9 +64,13 @@ async def list_orders():
     return {"orders": [asdict(o) for o in orders]}
 
 
-@app.delete("/api/orders/{order_id}")
-async def cancel_order(order_id: int):
-    success = order_service.cancel_order(order_id)
-    if not success:
-        raise HTTPException(status_code=404, detail="Order not found or cannot be cancelled")
-    return {"message": f"Order {order_id} cancelled"}
+@app.patch("/api/orders/{order_id}/status")
+async def transition_order_status(order_id: int, request: OrderStatusTransitionRequest):
+    try:
+        order = order_service.transition_order_status(order_id, request.status)
+    except OrderNotFoundError:
+        raise HTTPException(status_code=404, detail="Order not found")
+    except OrderTransitionError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    return {"order": asdict(order)}

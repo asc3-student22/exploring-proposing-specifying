@@ -6,8 +6,20 @@ Manages the BeanBotics order queue — placing, listing, and cancelling orders.
 
 from typing import List, Optional
 
-from backend.models import Order
+from backend.models import (
+    Order,
+    can_transition_order_status,
+    is_valid_order_status,
+)
 from backend.services.menu import MenuService
+
+
+class OrderNotFoundError(Exception):
+    pass
+
+
+class OrderTransitionError(Exception):
+    pass
 
 
 class OrderService:
@@ -37,7 +49,7 @@ class OrderService:
         return order
 
     def get_all_orders(self) -> List[Order]:
-        return [o for o in self.orders if o.status != "cancelled"]
+        return self.orders
 
     def get_order_by_id(self, order_id: int) -> Optional[Order]:
         for order in self.orders:
@@ -45,9 +57,25 @@ class OrderService:
                 return order
         return None
 
-    def cancel_order(self, order_id: int) -> bool:
+    def transition_order_status(self, order_id: int, target_status: str) -> Order:
         order = self.get_order_by_id(order_id)
-        if order and order.status == "pending":
-            order.status = "cancelled"
+        if not order:
+            raise OrderNotFoundError(f"Order {order_id} not found")
+
+        if not is_valid_order_status(target_status):
+            raise OrderTransitionError(f"Invalid status '{target_status}'")
+
+        if not can_transition_order_status(order.status, target_status):
+            raise OrderTransitionError(
+                f"Cannot transition order {order_id} from '{order.status}' to '{target_status}'"
+            )
+
+        order.status = target_status
+        return order
+
+    def cancel_order(self, order_id: int) -> bool:
+        try:
+            self.transition_order_status(order_id, "cancelled")
             return True
-        return False
+        except (OrderNotFoundError, OrderTransitionError):
+            return False
