@@ -1,0 +1,29 @@
+## 1. Backend Lifecycle Rules
+
+- [ ] 1.1 Define canonical order statuses and allowed transition map in backend order service
+- [ ] 1.2 Add transition validation helper that rejects illegal status changes with clear error messages
+- [ ] 1.3 Add or update request/response models needed for status transition payload validation
+
+## 2. Backend API Integration
+
+- [ ] 2.1 Implement a single order status transition endpoint that routes all status updates through service validation
+- [ ] 2.2 Route cancellation behavior through the same transition endpoint while enforcing pending-only cancellation
+- [ ] 2.3 Update API error handling to return consistent client-facing errors for invalid transitions and missing orders
+
+## 3. Frontend Queue Actions
+
+- [ ] 3.1 Update queue rendering logic to compute inline action buttons from each order's current status
+- [ ] 3.2 Implement frontend status transition calls for prepare, ready, complete, and cancel actions
+- [ ] 3.3 Show clear UI feedback when transition requests fail and keep local order status unchanged until refresh
+
+## 4. Frontend Queue Grouping
+
+- [ ] 4.1 Render queue board in grouped lifecycle sections including a visible Completed section
+- [ ] 4.2 Ensure completed orders remain listed in Completed after successful transition
+- [ ] 4.3 Verify cancelled and completed orders do not render advance controls
+
+## 5. Validation and Regression Checks
+
+- [ ] 5.1 Add or update backend tests for valid and invalid lifecycle transitions and pending-only cancellation
+- [ ] 5.2 Add or update frontend behavior checks for status-specific actions and grouped queue rendering
+- [ ] 5.3 Run project checks and manually validate end-to-end order progression in the queue UI
