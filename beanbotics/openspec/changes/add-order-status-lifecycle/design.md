@@ -22,11 +22,11 @@ This change is cross-cutting: backend service logic must enforce a legal transit
 
 ## Decisions
 
-### Decision: Centralize transition rules in service layer constants
-- Choice: Define an allowed-status set and transition map in `backend/services/orders.py`, and expose a single validation function for status updates.
-- Rationale: Keeping transitions centralized prevents drift across endpoints and avoids duplicated rule logic.
-- Alternative considered: Validate transitions inline in API route handlers.
-- Why not alternative: Route-level logic would spread lifecycle policy across files and increase regression risk.
+### Decision: Define transition rules in models and enforce via service layer
+- Choice: Define an allowed-status set and transition map as declarative constants in `backend/models.py` alongside the order status model, and have `backend/services/orders.py` call a single validation function that applies those rules.
+- Rationale: Co-locating lifecycle rules with status definitions keeps the domain model self-describing while preserving thin routes and service-layer ownership of workflow execution.
+- Alternative considered: Keep the transition map directly in service-layer constants.
+- Why not alternative: Service-only constants separate lifecycle policy from the status model and make it easier for model and workflow rules to drift over time.
 
 ### Decision: Replace cancel-only mutation with one status transition endpoint
 - Choice: Introduce one API endpoint for status updates (for example PATCH-style semantics), and route cancel through the same transition logic.
@@ -61,7 +61,7 @@ This change is cross-cutting: backend service logic must enforce a legal transit
 
 ## Migration Plan
 
-1. Add transition constants and validation logic in order service.
+1. Add status transition constants in `backend/models.py` and implement shared validation helpers used by the order service.
 2. Add the unified status transition endpoint and wire cancellation behavior through it.
 3. Update frontend queue actions to call the new endpoint and refresh board state.
 4. Deploy backend and frontend together to avoid temporary contract mismatch.
